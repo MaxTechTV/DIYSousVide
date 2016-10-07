@@ -1,6 +1,3 @@
-#include <Arduino.h>
-
-
 void initLCD() {
   lcd.begin();
   lcd.backlight();
@@ -38,5 +35,5 @@ void showCurrentTime(){
   lcd.print(" Hours ");
   lcd.print(tM);
   lcd.print(" Minutes");
-  
+
   }

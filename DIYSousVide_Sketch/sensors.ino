@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 void initSensors(){
 lcd.begin();
 sensors.begin();
@@ -18,7 +16,7 @@ boolean checkEnc() {
   }
 
 int measureTemp(int d){
-  
+
    if (d==0){
     sensors.requestTemperatures();
     int temp = (int)(sensors.getTempCByIndex(0)*10);

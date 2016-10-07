@@ -1,6 +1,12 @@
-#include <Arduino.h>
+/*
+---------------------------------------------------------
+DIYSousVide Version 1.0
+Author: Max, Host of MaxTechTV
 
-// The used Libraries
+Caution: This is only a first draft and isnt tested yet
+---------------------------------------------------------
+*/
+
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -102,7 +108,6 @@ void loop()
 
     showTemp(currentTemp/10);
     showCurrentTime();
-    
+
   }
 }
-
