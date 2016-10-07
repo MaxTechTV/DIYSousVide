@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 void initSensors(){
 lcd.begin();
 sensors.begin();

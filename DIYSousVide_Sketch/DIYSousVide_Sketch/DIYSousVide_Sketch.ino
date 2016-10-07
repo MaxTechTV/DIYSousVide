@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 // The used Libraries
 
 #include <Wire.h>
