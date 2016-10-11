@@ -2,11 +2,21 @@
 ---------------------------------------------------------
 DIYSousVide Version 1.1
 Author: Max, Host of MaxTechTV
-Date: 08.10.16
-First partly Working Release
+Date: 11.10.16
+First partly Working Release with basic Functionality 
+
+- 16x2 Display shows Information
+- Rotary Encoder enables Input of Temperature & Time
+- Relay triggers Heater 
+- Time counts backwards
+- Basic Temp Management implemented (no PID support yet)
+
+License: released under CC-BY-NC-4 (https://creativecommons.org/licenses/by-nc/4.0/)
 ---------------------------------------------------------
 */
 
+
+// LIBRARIES
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -15,7 +25,7 @@ First partly Working Release
 #include <Encoder.h> //https://github.com/PaulStoffregen/Encoder
 
 
-
+// CONFIG I/O
 int encPin1 = 2;
 int encPin2 = 3;
 int encPinClick = 7;
@@ -29,6 +39,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
+// CONFIG VARIABLES
 int mode = 1;
 
 long oldPosition  = 0;
@@ -49,6 +60,8 @@ int currentHours = 0;
 
 long startTime = 0;
 
+
+// SETUP
 void setup()
 {
   initLCD();
@@ -63,6 +76,13 @@ void setup()
 
 void loop()
 {
+
+  // MODE 0 - Choose Preset 
+
+  // to be implemented... 
+  
+  // MODE 1 - Set Temperature
+  
   while (mode == 1) {
 
   if (!digitalRead(encPinClick)) {
@@ -90,6 +110,8 @@ void loop()
     }
   }
 
+  // MODE 2 - Set time 
+
   while (mode == 2) {
     if (!digitalRead(encPinClick)) {
       mode = 3;
@@ -114,6 +136,8 @@ void loop()
 
   }
 
+  // MODE 3 - Start Cooking 
+  
    while (mode == 3) {
     if (!digitalRead(encPinClick)) {
       mode = 4;
