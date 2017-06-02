@@ -1,12 +1,22 @@
 /*
 ---------------------------------------------------------
-DIYSousVide Version 1.0
+DIYSousVide Version 1.1
 Author: Max, Host of MaxTechTV
+Date: 11.10.16
+First partly Working Release with basic Functionality 
 
-Caution: This is only a first draft and isnt tested yet
+- 16x2 Display shows Information
+- Rotary Encoder enables Input of Temperature & Time
+- Relay triggers Heater 
+- Time counts backwards
+- Basic Temp Management implemented (no PID support yet)
+
+License: released under CC-BY-NC-4 (https://creativecommons.org/licenses/by-nc/4.0/)
 ---------------------------------------------------------
 */
 
+
+// LIBRARIES
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -15,11 +25,12 @@ Caution: This is only a first draft and isnt tested yet
 #include <Encoder.h> //https://github.com/PaulStoffregen/Encoder
 
 
-
-int encPin1 = 5;
-int encPin2 = 6;
+// CONFIG I/O
+int encPin1 = 2;
+int encPin2 = 3;
 int encPinClick = 7;
 int tempSensorPin = 8;
+int heaterPin = 4;
 
 #define ONE_WIRE_BUS tempSensorPin
 
@@ -28,73 +39,107 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-int mode = 0;
+// CONFIG VARIABLES
+int mode = 1;
 
 long oldPosition  = 0;
 
-int upperTempLimit = 95;
-int lowerTempLimit = 30;
+int upperTempLimit = 100;
+int lowerTempLimit = 0;
 
-int targetTemp = 0;
+int targetTemp = 30;
+int currentTemp = 0;
 int deltaHys = 50;
 
 int targetMinutes = 0;
 int targetHours = 0;
+int time_cache= 0;
 
 int currentMinutes = 0;
 int currentHours = 0;
 
 long startTime = 0;
 
+
+// SETUP
 void setup()
 {
   initLCD();
   initSensors();
+  pinMode(encPinClick,INPUT_PULLUP);
+  pinMode(heaterPin,OUTPUT);
+  digitalWrite(heaterPin, HIGH);
+  showTemp(targetTemp);
+  //Serial.begin(9600);
+
 }
 
 void loop()
 {
+
+  // MODE 0 - Choose Preset 
+
+  // to be implemented... 
+  
+  // MODE 1 - Set Temperature
+  
   while (mode == 1) {
-    if (digitalRead(!encPinClick)) {
-      oldPosition = 0;
+
+  if (!digitalRead(encPinClick)) {
+
       mode = 2;
       targetTemp=targetTemp*10;
+      while(!digitalRead(encPinClick));
+      delay(100);
+      lcd.clear();
+      showTime(targetHours, targetMinutes);
       break;
     }
-    if (checkEnc()) {
+      int targetTemp_old = targetTemp;
+      targetTemp = targetTemp+checkEnc();
 
-      int newTemp = oldPosition;
-      if (newTemp >= upperTempLimit) {
-        newTemp = upperTempLimit;
-        oldPosition = upperTempLimit;
+      if ((targetTemp_old-targetTemp != 0)){
+      if (targetTemp >= upperTempLimit) {
+        targetTemp = upperTempLimit;
       }
-      else if (newTemp <= lowerTempLimit) {
-        newTemp = lowerTempLimit;
-        oldPosition = lowerTempLimit;
-      }
-      else {
-        targetTemp = newTemp;
+      else if (targetTemp <= lowerTempLimit) {
+        targetTemp = lowerTempLimit;
+        
       }
       showTemp(targetTemp);
     }
   }
 
+  // MODE 2 - Set time 
+
   while (mode == 2) {
-    if (digitalRead(!encPinClick)) {
+    if (!digitalRead(encPinClick)) {
       mode = 3;
+      while(!digitalRead(encPinClick));
+      delay(100);
       startTime = millis();
+      lcd.clear();
+      showTemp(0);
+      showCurrentTime();
       break;
     }
-    if (checkEnc()) {
-      int newTime = oldPosition;
-      int targetHours = newTime / 60;
-      int targetMinutes = newTime % 60;
-    }
-    showTime(targetHours, targetMinutes);
+
+      int time_cache_old = time_cache;
+      time_cache =time_cache+checkEnc();
+      if ((time_cache_old - time_cache)!=0){
+      
+      targetHours = time_cache / 60;
+      targetMinutes = time_cache % 60;
+    
+     showTime(targetHours, targetMinutes);
+      }
+
   }
 
+  // MODE 3 - Start Cooking 
+  
    while (mode == 3) {
-    if (digitalRead(!encPinClick)) {
+    if (!digitalRead(encPinClick)) {
       mode = 4;
       break;
     }
@@ -105,7 +150,7 @@ void loop()
     if (currentTemp>(targetTemp+deltaHys)){
       heaterOff();
     }
-
+    currentTemp=measureTemp(3);
     showTemp(currentTemp/10);
     showCurrentTime();
 
