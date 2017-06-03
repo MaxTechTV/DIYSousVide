@@ -20,21 +20,39 @@ int checkEnc() {
   }
 
 
-int measureTemp(int d){
+float measureTemp(int d){
 
    if (d==0){
     sensors.requestTemperatures();
-    int temp = (int)(sensors.getTempCByIndex(0)*10);
+    float temp = (int)(sensors.getTempCByIndex(0));
     return temp;
    }
    else{
-    int temp = 0;
+    float temp = 0;
     for (int i = 0; i<d;i++){
       sensors.requestTemperatures();
-      temp =temp+ (int)(sensors.getTempCByIndex(0)*10);
+      temp =temp+ (sensors.getTempCByIndex(0));
+      
       delay(10);
     }
     temp = temp/d;
-    return temp;
+    return temp;   
     }
 }
+
+
+void safetyNet(){
+  if (currentTemp<0 || currentTemp > 1000) {
+    
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("ERROR");
+
+    digitalWrite(heaterPin,LOW);
+    }
+
+   for (int i = 0; i<1000;i++){
+    }
+   while(true);
+}
+

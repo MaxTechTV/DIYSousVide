@@ -1,19 +1,20 @@
 /*
 ---------------------------------------------------------
-DIYSousVide Version 1.1
+DIYSousVide Version 1.2
 Author: Max, Host of MaxTechTV
-Date: 11.10.16
-First partly Working Release with basic Functionality 
+Date: 03.06.17
+Working Release with basic Functionality
 
 - 16x2 Display shows Information
 - Rotary Encoder enables Input of Temperature & Time
-- Relay triggers Heater 
+- Relay triggers Heater
 - Time counts backwards
 - Basic Temp Management implemented (no PID support yet)
 
 License: released under CC-BY-NC-4 (https://creativecommons.org/licenses/by-nc/4.0/)
 ---------------------------------------------------------
 */
+
 
 
 // LIBRARIES
@@ -47,9 +48,10 @@ long oldPosition  = 0;
 int upperTempLimit = 100;
 int lowerTempLimit = 0;
 
-int targetTemp = 30;
-int currentTemp = 0;
-int deltaHys = 50;
+float currentTemp= 0;
+float targetTemp = 30;
+float deltaHysLowerLimit = 0.2;
+float deltaHysUpperLimit = 0.2;
 
 int targetMinutes = 0;
 int targetHours = 0;
@@ -59,7 +61,7 @@ int currentMinutes = 0;
 int currentHours = 0;
 
 long startTime = 0;
-
+boolean firstHeatingFlag = true; 
 
 // SETUP
 void setup()
@@ -68,34 +70,33 @@ void setup()
   initSensors();
   pinMode(encPinClick,INPUT_PULLUP);
   pinMode(heaterPin,OUTPUT);
-  digitalWrite(heaterPin, HIGH);
+  digitalWrite(heaterPin, LOW);
   showTemp(targetTemp);
-  //Serial.begin(9600);
+  Serial.begin(9600);
 
 }
 
 void loop()
 {
 
-  // MODE 0 - Choose Preset 
+  // MODE 0 - Choose Preset
 
-  // to be implemented... 
-  
+  // to be implemented...
+
   // MODE 1 - Set Temperature
-  
+
   while (mode == 1) {
 
   if (!digitalRead(encPinClick)) {
 
       mode = 2;
-      targetTemp=targetTemp*10;
       while(!digitalRead(encPinClick));
       delay(100);
       lcd.clear();
       showTime(targetHours, targetMinutes);
       break;
     }
-      int targetTemp_old = targetTemp;
+      float targetTemp_old = targetTemp;
       targetTemp = targetTemp+checkEnc();
 
       if ((targetTemp_old-targetTemp != 0)){
@@ -104,13 +105,13 @@ void loop()
       }
       else if (targetTemp <= lowerTempLimit) {
         targetTemp = lowerTempLimit;
-        
+
       }
       showTemp(targetTemp);
     }
   }
 
-  // MODE 2 - Set time 
+  // MODE 2 - Set time
 
   while (mode == 2) {
     if (!digitalRead(encPinClick)) {
@@ -127,32 +128,55 @@ void loop()
       int time_cache_old = time_cache;
       time_cache =time_cache+checkEnc();
       if ((time_cache_old - time_cache)!=0){
-      
+
       targetHours = time_cache / 60;
       targetMinutes = time_cache % 60;
-    
+
      showTime(targetHours, targetMinutes);
       }
 
   }
 
-  // MODE 3 - Start Cooking 
-  
+  // MODE 3 - QuickStart 
+
    while (mode == 3) {
-    if (!digitalRead(encPinClick)) {
+    /*if (!digitalRead(encPinClick)) {
       mode = 4;
       break;
     }
-    int currentTemp = measureTemp(3);
-    if (currentTemp<(targetTemp-deltaHys)){
+    */
+    
+      while(currentTemp < (targetTemp-2)){
+        heaterOn();
+        currentTemp = measureTemp(2);
+        delay(100);
+        showTempComparison(currentTemp,targetTemp);
+        Serial.println(currentTemp);
+        }
+        heaterOff();
+        delay(10000);
+        mode = 4;
+   }
+   while(mode ==4) {
+    
+    currentTemp = measureTemp(3);
+    //safetyNet();
+        Serial.println(currentTemp);
+    if (currentTemp<(targetTemp-deltaHysLowerLimit)){
+      //Serial.println("HEATER ON");
       heaterOn();
       }
-    if (currentTemp>(targetTemp+deltaHys)){
+    if (currentTemp>(targetTemp-deltaHysUpperLimit)){
+      //Serial.println("HEATER OFF");
       heaterOff();
     }
-    currentTemp=measureTemp(3);
-    showTemp(currentTemp/10);
+    showTempComparison((currentTemp),targetTemp);
     showCurrentTime();
-
+    if (noTimeLeft()){
+      mode = 4; 
+      heaterOff();
+      
+      break;
+      }
   }
 }
